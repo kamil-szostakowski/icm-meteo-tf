@@ -19,6 +19,10 @@ lib64/
 parts/
 sdist/
 var/
+bin/
+include/
+source-images/
+training-examples/
 wheels/
 *.egg-info/
 .installed.cfg
