@@ -1,6 +1,7 @@
 import cv2
 import glob
 import copy
+import os
 
 from types import IntType, StringType
 from Tkinter import Button, Label, Checkbutton, StringVar, Tk, S, W, N, E
@@ -204,6 +205,9 @@ class FileProvider(object):
 
         self._input_dir = input_dir           
         self._iterator = glob.iglob(self._input_dir+'*.png')
+
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
 
         self.output_dir = output_dir
         self.preview_path = preview_path
