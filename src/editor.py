@@ -3,6 +3,7 @@ import glob
 import copy
 import os
 import json
+import re
 
 from types import IntType, StringType
 from Tkinter import Button, Label, Checkbutton, Text, StringVar, Tk, S, W, N, E, END, CENTER
@@ -386,7 +387,7 @@ class TrainingSetEditor(object):
         """ Method called when next button was activated. """
         self._data_store.update_training_input(self._current_training_input)
 
-        if self._data_store.current_file_index % 10 == 0:
+        if self._data_store.current_file_index % 50 == 0:
             self._data_store.dump_index()
         
         try:
@@ -397,8 +398,9 @@ class TrainingSetEditor(object):
             self._update_progess_labels()
 
     def _get_next_item_index(self):
-        """ Method returns the index of next meteorogram to process """
-        newIndex = int(self._current_image_index_text.get(1.0, END).encode('ascii','ignore'))
+        """ Method returns the index of next meteorogram to process """        
+        inputString = self._current_image_index_text.get(1.0, END).encode('ascii','ignore')
+        newIndex = int(re.sub('[^0-9]','', inputString))
         return newIndex if newIndex != self._data_store.current_file_index else newIndex+1
 
     def _show_image(self, training_input):
