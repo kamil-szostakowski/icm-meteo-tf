@@ -420,6 +420,7 @@ class TrainingSetEditor(object):
         self._root_window.mainloop()
 
 # Execution section
-dataStore = TrainingDataStore('../source-images/', '../training-set-index.json', '../tmp-preview.png')
-editor = TrainingSetEditor(EditorSize(630, 660), dataStore)
-editor.activate()
+if __name__ == "__main__":     
+    dataStore = TrainingDataStore('../source-images/', '../training-set-index.json', '../tmp-preview.png')
+    editor = TrainingSetEditor(EditorSize(630, 660), dataStore)
+    editor.activate()

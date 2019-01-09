@@ -23,6 +23,7 @@ bin/
 include/
 source-images/
 training-examples/
+training-set/
 wheels/
 *.egg-info/
 .installed.cfg

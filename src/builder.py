@@ -1,77 +1,107 @@
 import glob
 import json
 import os
+import cv2
 
+from editor import CropArea, TrainingImagePreview
 from types import IntType, StringType
 
+class CroppedImage(object):
+    def __init__(self, img_path, crop):
+        """
+        Args:
+            img_path (str): full path to the full meteorogram image.
+            crop (CropArea): area which should be cropped out of the meteorogram in order to prepare a training example.
+        """
+        
+        assert type(img_path) is StringType, 'img_path: passed object of incorrect type'
+        assert type(crop) is CropArea, 'crop: passed object of incorrect type'
+        
+        self._image = cv2.imread(img_path)        
+        self._image = self._image[crop.y_slice, crop.x_slice]
+
+    def save(self, destination_path):
+        assert type(destination_path) is StringType, 'destination_path: passed object of incorrect type'
+        cv2.imwrite(destination_path, self._image)        
+
 class TrainingSetBuilder(object):
-    """
-    Class which is responsible for managing index of the training set.
-    """
+    def __init__(self, images_path, index_path):
+        assert type(images_path) is StringType, 'images_path: passed object of incorrect type'
+        assert type(index_path) is StringType, 'index_path: passed object of incorrect type'
 
-    index = { "sorted_keys": [], "values": {} , "active_index": 0 }
+        self._images_path = images_path
+        self._index_path = index_path
+        self._index = { 'sorted_keys': [], 'values': {} , 'active_index': 0 }
 
-    def load_index(self, input_file):
-        """
-        Method which loads training set index from file.
+        self._load_index(index_path)
 
-        Args:
-            input_file (StringVar): path to the input file.
-        """
+    def build(self, blueprint):
+        index = 1
+        self._compile_blueprint(blueprint)
 
-        self._validate_path(input_file)
+        for image_key in self._index['sorted_keys']:
+            if image_key in self._index['values']:
+                features = self._index['values'][image_key].encode('ascii','ignore')
+                training_image = image_key.encode('ascii','ignore')
 
-        with open(input_file) as infile:
-            self.index = json.load(infile)
+                print('%d Processing item %s -> %s' % (index, training_image, features))
+                self._build_item(training_image, features, blueprint)                
+                index += 1
 
-    def scan_input(self, input_dir):
-        """
-        Method which scans the directory with example images and builds 
-        a sorted list of examples names.
+    def _load_index(self, index_path):
+        """ Method loads features index from a file  """
 
-        Args:
-            input_dir (StringVar): path to the input directory.
-        """
+        if not os.path.exists(index_path):
+            raise ValueError('File or directory %s does not exists' % (index_path))
 
-        self._validate_path(input_dir)
+        with open(index_path) as infile:
+            self._index = json.load(infile)
 
-        for path in glob.iglob(input_dir+'*.png'):
-            base_filename = os.path.splitext(os.path.basename(path))[0]
-            self.index["sorted_keys"].append(base_filename)
+    def _build_item(self, training_image, features, blueprint):
+        """ Method builds training examples based on meteorogram and blueprint """
+        source_path = os.path.join(self._images_path, training_image + '.png')
+        
+        for item in blueprint:
+            if not item['feature'].encode('ascii','ignore') in features:
+                continue
 
-    def scan_values(self, input_dir):        
-        self._validate_path(input_dir)
+            output_filename = training_image + '@' + features + '.png'
+            image = CroppedImage(source_path, item['crop_area'])
+            image.save(os.path.join(item['destination_dir'], output_filename))            
 
-        for path in glob.iglob(input_dir+'*.png'):
-            base_filename = os.path.splitext(os.path.basename(path))[0].split('@')            
-            key = base_filename[0]
-            value = base_filename[1]            
-            self.index["values"][key] = value
-
-    def save(self, output_path):
-        """
-        Method which dumps the index to the specified file.
-
-        Args:
-            output_path (StringVar): path to the input directory.        
-        """
-
-        assert type(output_path) is StringType, 'output_path: passed object of incorrect type'
-
-        with open(output_path, 'w') as outfile:
-            json.dump(self.index, outfile, indent=4, separators=(',', ':'))
-
-    def _validate_path(self, path):
-        assert type(path) is StringType, 'path: passed object of incorrect type'
-
-        if not os.path.exists(path):
-            raise ValueError('File or directory %s does not exists' % (path))        
-
+    def _compile_blueprint(self, blueprint):
+        """ Method creates directories required by blueprint items """
+        for item in blueprint:
+            if not os.path.exists(item['destination_dir']):
+                os.makedirs(item['destination_dir'])
+        
 # Execution section
-builder = TrainingSetBuilder()
-builder.scan_input('../source-images/')
-builder.scan_values('../training-examples/')
-builder.save('../training-set-index.json')
-
-# builder.load_index('../training-set-index.json')
-# print(builder.index['values']['2017122006-432-277'])
+if __name__ == "__main__":
+    builder = TrainingSetBuilder('../source-images/', '../training-set-index.json')
+    builder.build([
+        {
+            'crop_area': CropArea(65, 140, 180, 85),
+            'destination_dir': '../training-set/rain/',
+            'feature': 'R'
+        },
+        {
+            'crop_area': CropArea(65, 140, 180, 85),
+            'destination_dir': '../training-set/snow/',
+            'feature': 'S'
+        },
+        {
+            'crop_area': CropArea(65, 140, 180, 85),
+            'destination_dir': '../training-set/storm/',
+            'feature': 'T'
+        },                
+        {
+            'crop_area': CropArea(65, 314, 180, 85),
+            'destination_dir': '../training-set/wind/',
+            'feature': 'W'
+        },
+        {
+            'crop_area': CropArea(65, 522, 180, 85),
+            'destination_dir': '../training-set/clouds/',
+            'feature': 'C'
+        }
+    ])
