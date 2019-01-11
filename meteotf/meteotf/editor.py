@@ -421,6 +421,6 @@ class TrainingSetEditor(object):
 
 # Execution section
 if __name__ == "__main__":     
-    dataStore = TrainingDataStore('../source-images/', '../training-set-index.json', '../tmp-preview.png')
+    dataStore = TrainingDataStore('../data/source-images/', '../data/training-set-index.json', '../data/tmp-preview.png')
     editor = TrainingSetEditor(EditorSize(630, 660), dataStore)
     editor.activate()
