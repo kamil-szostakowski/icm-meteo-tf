@@ -5,28 +5,12 @@ import cv2
 import sys
 import random
 
+import feature
 import tensorflow as tf
 import tensorflow.train as tft
-import tensorflow.compat as tfc
 
 from editor import CropArea, TrainingImagePreview
 from types import IntType, StringType, FloatType
-
-def _int64_feature(value):  
-  if not isinstance(value, list):
-    value = [value]
-  return tft.Feature(int64_list=tft.Int64List(value=value))
-
-def _bytes_feature(value):  
-  return tft.Feature(bytes_list=tft.BytesList(value=[value]))
-
-feature_description = {
-    'image/class/label': tf.FixedLenFeature([], tf.int64),
-    'image/class/text': tf.VarLenFeature(tf.string),
-    'image/filename': tf.FixedLenFeature([], tf.string),
-    'image/format': tf.FixedLenFeature([], tf.string),
-    'image/encoded': tf.FixedLenFeature([], tf.string),
-}  
 
 class CroppedImage(object):
     def __init__(self, img_path, crop):
@@ -101,26 +85,11 @@ class TrainingSetBuilder(object):
         self._record_writer = TFWriter(destination_dir, ratio)
 
         for class_dir in glob.glob(os.path.join(training_dir, "*")):
-            class_label, class_name =  self._get_tf_class(class_dir)
-
-            for example_file in glob.glob(os.path.join(class_dir, "*")):
-                image_string = open(example_file, 'rb').read()
-
-                example = tft.Example(features=tft.Features(feature={                 
-                    'image/class/label': _int64_feature(class_label),
-                    'image/class/text': _bytes_feature(tfc.as_bytes(class_name)),
-                    'image/filename': _bytes_feature(tfc.as_bytes(os.path.basename(example_file))),
-                    'image/format': _bytes_feature(tfc.as_bytes('JPEG')),
-                    'image/encoded': _bytes_feature(image_string),
-                }))
+            for example_file in glob.glob(os.path.join(class_dir, "*")):                
+                example = feature.create_example(example_file)
                 self._record_writer.write(example)
 
-        self._record_writer.close()                
-
-    def _get_tf_class(self, class_dir):
-        class_label =  int(os.path.basename(class_dir).split('_')[-1])
-        class_name = str(os.path.basename(class_dir).split('_')[0])
-        return class_label, class_name
+        self._record_writer.close()
 
     def _load_index(self, index_path):
         """ Method loads features index from a file  """
@@ -152,31 +121,31 @@ class TrainingSetBuilder(object):
 # Execution section
 if __name__ == "__main__":
     builder = TrainingSetBuilder('../data/source-images/', '../data/training-set-index.json')
-    builder.build_intermediate_set([
-        {
-            'crop_area': CropArea(65, 140, 180, 85),
-            'destination_dir': '../data/training-set/rain_0/',
-            'feature': 'R'
-        },
-        # {
-        #     'crop_area': CropArea(65, 140, 180, 85),
-        #     'destination_dir': '../data/training-set/snow/',
-        #     'feature': 'S'
-        # },
-        # {
-        #     'crop_area': CropArea(65, 140, 180, 85),
-        #     'destination_dir': '../data/training-set/storm/',
-        #     'feature': 'T'
-        # },                
-        {
-            'crop_area': CropArea(65, 314, 180, 85),
-            'destination_dir': '../data/training-set/wind_1/',
-            'feature': 'W'
-        },
-        {
-            'crop_area': CropArea(65, 522, 180, 85),
-            'destination_dir': '../data/training-set/clouds_2/',
-            'feature': 'C'
-        }
-    ])
+    # builder.build_intermediate_set([
+    #     {
+    #         'crop_area': CropArea(65, 140, 180, 85),
+    #         'destination_dir': '../data/training-set/rain_0/',
+    #         'feature': 'R'
+    #     },
+    #     # {
+    #     #     'crop_area': CropArea(65, 140, 180, 85),
+    #     #     'destination_dir': '../data/training-set/snow/',
+    #     #     'feature': 'S'
+    #     # },
+    #     # {
+    #     #     'crop_area': CropArea(65, 140, 180, 85),
+    #     #     'destination_dir': '../data/training-set/storm/',
+    #     #     'feature': 'T'
+    #     # },                
+    #     {
+    #         'crop_area': CropArea(65, 314, 180, 85),
+    #         'destination_dir': '../data/training-set/wind_1/',
+    #         'feature': 'W'
+    #     },
+    #     {
+    #         'crop_area': CropArea(65, 522, 180, 85),
+    #         'destination_dir': '../data/training-set/clouds_2/',
+    #         'feature': 'C'
+    #     }
+    # ])
     builder.build_tfrecord('../data/training-set/', '../data/', 0.8)            
