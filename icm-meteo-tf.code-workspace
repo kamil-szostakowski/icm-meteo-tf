@@ -5,6 +5,7 @@
 		}
 	],
 	"settings": {
-		"python.pythonPath": "${workspaceFolder}/../bin/python"
+		"python.pythonPath": "${workspaceFolder}/../bin/python",
+		"git.ignoreLimitWarning": true
 	}
 }

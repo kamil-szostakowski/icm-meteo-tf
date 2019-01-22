@@ -420,7 +420,11 @@ class TrainingSetEditor(object):
         self._root_window.mainloop()
 
 # Execution section
-if __name__ == "__main__":     
-    dataStore = TrainingDataStore('../data/source-images/', '../data/training-set-index.json', '../data/tmp-preview.png')
+if __name__ == "__main__":
+    orginal_images_path = '../data/prediction-images/'
+    index_path = '../data/prediction-set-index.json'
+    preview_path = '../data/tmp-preview.png'
+
+    dataStore = TrainingDataStore(orginal_images_path, index_path, preview_path)
     editor = TrainingSetEditor(EditorSize(630, 660), dataStore)
     editor.activate()

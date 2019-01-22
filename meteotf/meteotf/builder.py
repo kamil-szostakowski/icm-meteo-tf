@@ -23,7 +23,7 @@ class CroppedImage(object):
         assert type(img_path) is StringType, 'img_path: passed object of incorrect type'
         assert type(crop) is CropArea, 'crop: passed object of incorrect type'
         
-        self._image = cv2.imread(img_path)
+        self._image = cv2.imread(img_path)        
         self._image = self._image[crop.y_slice, crop.x_slice]
         self._image = cv2.cvtColor(self._image, cv2.COLOR_BGR2GRAY)
         self._image = cv2.resize(self._image, (0,0), fx=0.5, fy=0.5)
@@ -32,33 +32,44 @@ class CroppedImage(object):
         assert type(destination_path) is StringType, 'destination_path: passed object of incorrect type'
         cv2.imwrite(destination_path, self._image)
 
-class TFWriter(object):
-    def __init__(self, destination_dir, ratio):
-        assert type(destination_dir) is StringType, 'destination_dir: passed object of incorrect type'
-        assert type(ratio) is FloatType, 'ratio: passed object of incorrect type'
-        
-        self._ratio = ratio
-        self._write_count = 0        
-        self._training_writer = tf.python_io.TFRecordWriter(destination_dir + 'training.TFRecord')
-        self._validation_writer = tf.python_io.TFRecordWriter(destination_dir + 'validation.TFRecord')        
+class MeteoRecordWriter(object):
+    def __init__(self, destination_path):
+        assert type(destination_path) is StringType, 'destination_path: passed object of incorrect type'
+        self._writer = tf.python_io.TFRecordWriter(destination_path)
+        self._write_count = 0
 
     def write(self, example):
-        assert type(example) is tft.Example, 'example: passed object of incorrect type'        
-        
-        writer = self._training_writer if random.random() <= self._ratio else self._validation_writer
-        writer.write(example.SerializeToString())
+        assert type(example) is tft.Example, 'example: passed object of incorrect type'                        
+        self._writer.write(example.SerializeToString())
         self._write_count += 1
 
         if not self._write_count % 1000:
-            sys.stdout.flush()
+            sys.stdout.flush()        
+
+    def close(self):
+        self._writer.close()        
+        self._write_count = 0
+        sys.stdout.flush()
+
+class MeteoTrainingRecordWriter(object):
+    def __init__(self, destination_dir, ratio):
+        assert type(destination_dir) is StringType, 'destination_dir: passed object of incorrect type'
+        assert type(ratio) is FloatType, 'ratio: passed object of incorrect type'        
+        self._ratio = ratio        
+        self._training_writer = MeteoRecordWriter(os.path.join(destination_dir, 'training.TFRecord'))
+        self._validation_writer = MeteoRecordWriter(os.path.join(destination_dir, 'validation.TFRecord'))        
+
+    def write(self, example):
+        assert type(example) is tft.Example, 'example: passed object of incorrect type'
+        writer = self._training_writer if random.random() <= self._ratio else self._validation_writer
+        writer.write(example)
 
     def close(self):
         self._training_writer.close()
         self._validation_writer.close()
-        self._write_count = 0
         sys.stdout.flush()
 
-class TrainingSetBuilder(object):
+class MeteoTrainingSetBuilder(object):
     def __init__(self, images_path, index_path):
         assert type(images_path) is StringType, 'images_path: passed object of incorrect type'
         assert type(index_path) is StringType, 'index_path: passed object of incorrect type'
@@ -81,15 +92,13 @@ class TrainingSetBuilder(object):
                 self._build_item(training_image, features, blueprint)                
                 index += 1
 
-    def build_tfrecord(self, training_dir, destination_dir, ratio):
-        self._record_writer = TFWriter(destination_dir, ratio)
-
+    def build_tfrecord(self, training_dir, record_writer):        
         for class_dir in glob.glob(os.path.join(training_dir, "*")):
             for example_file in glob.glob(os.path.join(class_dir, "*")):                
                 example = feature.create_example(example_file)
-                self._record_writer.write(example)
+                record_writer.write(example)
 
-        self._record_writer.close()
+        record_writer.close()
 
     def _load_index(self, index_path):
         """ Method loads features index from a file  """
@@ -118,34 +127,80 @@ class TrainingSetBuilder(object):
             if not os.path.exists(item['destination_dir']):
                 os.makedirs(item['destination_dir'])
         
-# Execution section
+# Helper functions
+def get_paths_for(operation):
+    intermediate_path = '../data/{operation}-set'.format(operation=operation)
+    source_images_path = '../data/{operation}-images/'.format(operation=operation)
+    index_path = '../data/{operation}-set-index.json'.format(operation=operation)
+
+    return intermediate_path, source_images_path, index_path
+
+def get_builder(operation, config):
+    intermediate_path, source_images_path, index_path = get_paths_for(operation)
+    builder = MeteoTrainingSetBuilder(source_images_path, index_path)
+    builder.build_intermediate_set(config)
+    return builder
+
+# Execution section 
 if __name__ == "__main__":
-    builder = TrainingSetBuilder('../data/source-images/', '../data/training-set-index.json')
-    # builder.build_intermediate_set([
-    #     {
-    #         'crop_area': CropArea(65, 140, 180, 85),
-    #         'destination_dir': '../data/training-set/rain_0/',
-    #         'feature': 'R'
-    #     },
-    #     # {
-    #     #     'crop_area': CropArea(65, 140, 180, 85),
-    #     #     'destination_dir': '../data/training-set/snow/',
-    #     #     'feature': 'S'
-    #     # },
-    #     # {
-    #     #     'crop_area': CropArea(65, 140, 180, 85),
-    #     #     'destination_dir': '../data/training-set/storm/',
-    #     #     'feature': 'T'
-    #     # },                
-    #     {
-    #         'crop_area': CropArea(65, 314, 180, 85),
-    #         'destination_dir': '../data/training-set/wind_1/',
-    #         'feature': 'W'
-    #     },
-    #     {
-    #         'crop_area': CropArea(65, 522, 180, 85),
-    #         'destination_dir': '../data/training-set/clouds_2/',
-    #         'feature': 'C'
-    #     }
-    # ])
-    builder.build_tfrecord('../data/training-set/', '../data/', 0.8)            
+    # Preparing the training set
+    intermediate_path, source_images_path, index_path = get_paths_for('training')
+    builder = MeteoTrainingSetBuilder(source_images_path, index_path)
+
+    builder.build_intermediate_set([
+        {
+            'crop_area': CropArea(65, 140, 180, 85),
+            'destination_dir': '{root}/rain_0/'.format(root=intermediate_path),
+            'feature': 'R'
+        },               
+        {
+            'crop_area': CropArea(65, 314, 180, 85),
+            'destination_dir': '{root}/wind_1/'.format(root=intermediate_path),
+            'feature': 'W'
+        },
+        {
+            'crop_area': CropArea(65, 522, 180, 85),
+            'destination_dir': '{root}/clouds_2/'.format(root=intermediate_path),
+            'feature': 'C'
+        }
+    ])
+    builder.build_tfrecord(intermediate_path, MeteoTrainingRecordWriter('../data/records/', 0.8))
+
+    # Preparing the prediction sets
+    intermediate_path, source_images_path, index_path = get_paths_for('prediction')
+    builder = MeteoTrainingSetBuilder(source_images_path, index_path)
+
+    # Preparing Rain prediction set    
+    builder.build_intermediate_set([{
+        'crop_area': CropArea(65, 140, 180, 85),
+        'destination_dir': '{root}/rain_0/'.format(root=intermediate_path),
+        'feature': 'R'
+    }])
+    builder.build_tfrecord(intermediate_path, MeteoRecordWriter('../data/records/prediction_rain.TFRecord'))
+
+    # Preparing Wind prediction set
+    builder.build_intermediate_set([{
+        'crop_area': CropArea(65, 314, 180, 85),
+        'destination_dir': '{root}/wind_1/'.format(root=intermediate_path),
+        'feature': 'W'
+    }])
+    builder.build_tfrecord(intermediate_path, MeteoRecordWriter('../data/records/prediction_wind.TFRecord'))
+
+    # Preparing Clouds prediction set
+    builder.build_intermediate_set([{
+        'crop_area': CropArea(65, 522, 180, 85),
+        'destination_dir': '{root}/clouds_2/'.format(root=intermediate_path),
+        'feature': 'C'
+    }])
+    builder.build_tfrecord(intermediate_path, MeteoRecordWriter('../data/records/prediction_clouds.TFRecord'))
+
+# {
+#     'crop_area': CropArea(65, 140, 180, 85),
+#     'destination_dir': '{root}/training-set/snow/'.format(root=intermediate_path),
+#     'feature': 'S'
+# },
+# {
+#     'crop_area': CropArea(65, 140, 180, 85),
+#     'destination_dir': '{root}/training-set/storm/'.format(root=intermediate_path),
+#     'feature': 'T'
+# },

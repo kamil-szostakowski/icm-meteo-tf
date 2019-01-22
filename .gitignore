@@ -21,9 +21,13 @@ sdist/
 var/
 bin/
 include/
-source-images/
-training-examples/
-training-set/
+**/data/training-images
+**/data/prediction-images/
+**/data/training-examples/
+**/data/training-set/
+**/data/prediction-set/
+**/data/saved-models/
+**/data/records/
 wheels/
 *.egg-info/
 .installed.cfg

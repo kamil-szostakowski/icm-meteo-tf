@@ -17,14 +17,14 @@ def _get_tf_class(class_dir):
     class_name = str(os.path.basename(class_dir).split('_')[0])    
     return class_label, class_name
 
-def feature_description():
-    return {
-        'image/label': tf.FixedLenFeature([], tf.int64),
-        'image/encoded': tf.FixedLenFeature([], tf.string),
-    }
+feature_spec = {
+  'image/label': tf.FixedLenFeature([], tf.int64),
+  'image/encoded': tf.FixedLenFeature([], tf.string),
+}
 
-def feature_columns():
-    return [tf.feature_column.numeric_column('image/encoded', shape=[90 * 42])]
+feature_columns = [
+  tf.feature_column.numeric_column('image/encoded', shape=[90 * 42])
+]
 
 def create_example(image_path):
     assert type(image_path) is types.StringType, 'image_path: passed object of incorrect type'
@@ -38,8 +38,21 @@ def create_example(image_path):
     }))
 
 def parse_record(record):        
-    parsed = tf.parse_single_example(record, feature_description())
+    parsed = tf.parse_single_example(record, feature_spec)
     image = tf.image.decode_jpeg(parsed['image/encoded'])
+    image = tf.reshape(image, [90 * 42])
+    print(image)
     label = tf.cast(parsed['image/label'], tf.int64)
     
     return { 'image/encoded': image }, label
+
+# Something is wrong here
+def serving_input_receiver_fn():  
+  serialized_tf_example = tf.placeholder(dtype=tf.string, shape=[None], name='input_tensors') #, shape=[30*3780], name='input_example_tensor'
+  receiver_tensors = {'inputs': serialized_tf_example}  
+
+  features = tf.parse_example(serialized_tf_example, {
+    'x': tf.FixedLenFeature([], tf.string)
+  })
+
+  return tf.estimator.export.ServingInputReceiver(features, receiver_tensors)
