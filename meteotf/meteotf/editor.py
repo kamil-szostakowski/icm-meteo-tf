@@ -4,6 +4,8 @@ import copy
 import os
 import json
 import re
+import sys
+import builder_blueprint
 
 from types import IntType, StringType
 from Tkinter import Button, Label, Checkbutton, Text, StringVar, Tk, S, W, N, E, END, CENTER
@@ -156,9 +158,9 @@ class TrainingDataStore(object):
     def _get_first_unprocessed_index(self):
         """ Method returns an index of first unprocessed meteorogram image """
         index = 0
-        for training_item in self._index["sorted_keys"]:
+        for training_item in self._index["sorted_keys"]:            
             if not training_item in self._index["values"]: # is already processed?
-                break                
+                break
             index += 1
         return index        
 
@@ -391,7 +393,8 @@ class TrainingSetEditor(object):
             self._data_store.dump_index()
         
         try:
-            self._current_training_input = self._data_store.get_training_input(self._get_next_item_index())
+            next_index = self._get_next_accepted_item(builder_blueprint.accept_fn_index['clouds-present'])
+            self._current_training_input = self._data_store.get_training_input(next_index)
             self._show_image(self._current_training_input)
             self._update_progess_labels()
         except ValueError:
@@ -402,6 +405,15 @@ class TrainingSetEditor(object):
         inputString = self._current_image_index_text.get(1.0, END).encode('ascii','ignore')
         newIndex = int(re.sub('[^0-9]','', inputString))
         return newIndex if newIndex != self._data_store.current_file_index else newIndex+1
+
+    def _get_next_accepted_item(self, accept_fn):
+        index = self._get_next_item_index()
+        while True:                        
+            input = self._data_store.get_training_input(index)            
+            if accept_fn(input.features.label):
+                return index
+            else:
+                index += 1
 
     def _show_image(self, training_input):
         """ Method displays the next meteorogram image. """
@@ -421,9 +433,17 @@ class TrainingSetEditor(object):
 
 # Execution section
 if __name__ == "__main__":
-    orginal_images_path = '../data/prediction-images/'
-    index_path = '../data/prediction-set-index.json'
-    preview_path = '../data/tmp-preview.png'
+
+    # HELP
+    # python2.7 editor.py set_name input_path
+    # python2.7 editor.py training ../data/
+
+    set_name = sys.argv[1]
+    input_path = sys.argv[2]
+
+    orginal_images_path = os.path.join(input_path, set_name + '-images')    
+    index_path = os.path.join(input_path, set_name + '-set-index.json')
+    preview_path = os.path.join(input_path, 'tmp-preview.png')
 
     dataStore = TrainingDataStore(orginal_images_path, index_path, preview_path)
     editor = TrainingSetEditor(EditorSize(630, 660), dataStore)

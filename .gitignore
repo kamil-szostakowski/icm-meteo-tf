@@ -28,6 +28,7 @@ include/
 **/data/prediction-set/
 **/data/saved-models/
 **/data/records/
+**/data/*-model/
 wheels/
 *.egg-info/
 .installed.cfg
