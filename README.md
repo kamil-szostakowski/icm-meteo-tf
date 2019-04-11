@@ -17,7 +17,7 @@ virtualenv icmmeteotf
 pip install requirements.txt
 ```
 
-We need to build tensorflow from source to use graph_transform tool
+For the purpose of CoreML transformation we need a __transform_graph__ tool that can be build only from tensorflow source code. It's not required to build entire tensorflow from source. It's enough to use bazel to build only that one tool. All the required information can be find [here](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/graph_transforms/README.md).
 
 ## Downloader
 Downloader is a tool which downloads all available meteorograms form [Meteo.pl](http://meteo.pl) website. Downloader is constraint to several known locations but the list can be extended directly in the code.
