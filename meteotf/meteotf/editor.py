@@ -435,16 +435,13 @@ class TrainingSetEditor(object):
 if __name__ == "__main__":
 
     # HELP
-    # python2.7 editor.py set_name input_path
-    # python2.7 editor.py training ../data/
-
-    set_name = sys.argv[1]
-    input_path = sys.argv[2]
-
-    orginal_images_path = os.path.join(input_path, set_name + '-images')    
-    index_path = os.path.join(input_path, set_name + '-set-index.json')
+    # python2.7 editor.py input_path output_path
+    # python2.7 editor.py ../data/training-images ../data/training-set-index.json
+    
+    input_path = sys.argv[1]
+    output_path = sys.argv[2]
     preview_path = os.path.join(input_path, 'tmp-preview.png')
 
-    dataStore = TrainingDataStore(orginal_images_path, index_path, preview_path)
+    dataStore = TrainingDataStore(input_path, output_path, preview_path)
     editor = TrainingSetEditor(EditorSize(630, 660), dataStore)
     editor.activate()

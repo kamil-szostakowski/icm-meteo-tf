@@ -1,14 +1,20 @@
 import os
+import sys
 import urllib2
 import datetime
 
 # http://www.meteo.pl/um/metco/mgram_pict.php?ntype=0u&fdate=2018051812&row=383&col=209&lang=pl
 
+# HELP
+# python2.7 setup.py destination_dir
+# python2.7 setup.py ../data/prediction-images
+
 """ Directory when we will store all the downloaded meteorograms """
-destinamtion_dir = 'data/prediction-images/'
+destination_dir = sys.argv[1]
 
 """ We skip files which are already present in this directory """
-filter_dir = 'data/source-images/'
+# filter_dir = 'data/source-images/'
+filter_dir = destination_dir
 
 """ Maximum number of days in the past we can reach for """
 distant_past = 156
@@ -61,15 +67,15 @@ def download_meteorogram(url, destination_path):
 
 # Execution section
 if __name__ == "__main__":
-    if not os.path.exists(destinamtion_dir):
-        os.makedirs(destinamtion_dir)
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
 
     for location in locations:
         for day in range(0, distant_past):
             date = datetime.date.today()-datetime.timedelta(days=day)
             for time in range(0, 24, 6):
                 url , filename = get_url(location, date, time)
-                download_path = os.path.join(destinamtion_dir, filename)
+                download_path = os.path.join(destination_dir, filename)
                 filter_path = os.path.join(filter_dir, filename)
 
                 if not os.path.exists(filter_path) and not os.path.exists(download_path):

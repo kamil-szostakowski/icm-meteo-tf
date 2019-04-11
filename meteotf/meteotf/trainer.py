@@ -89,8 +89,8 @@ if __name__ == "__main__":
     tf.logging.set_verbosity(tf.logging.DEBUG)
 
     # HELP
-    # python2.7 trainer.py input_path output_path class_name:label ....
-    # python2.7 trainer.py ../data/wind-model/records/ ../data/wind-model/saved-models wind-strong:0 wind-none:1
+    # python2.7 trainer.py input_path output_path
+    # python2.7 trainer.py ../data/wind-model/records/ ../data/wind-model/saved-models
 
     input_path = sys.argv[1]
     output_path = sys.argv[2]
@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
     meteo_model.save(output_path)
 
-    for item in sys.argv[3:]:
-        class_name = item.split(':')[0]
-        label = int(item.split(':')[1])        
-        meteo_model.predict([os.path.join(input_path, class_name + '.TFRecord')], label)
+    # for item in sys.argv[3:]:
+    #    class_name = item.split(':')[0]
+    #    label = int(item.split(':')[1])        
+    #    meteo_model.predict([os.path.join(input_path, class_name + '.TFRecord')], label)

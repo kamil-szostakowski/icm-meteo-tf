@@ -147,32 +147,35 @@ def rmifexists(path):
 if __name__ == "__main__":
     
     # HELP
-    # python2.7 builder blueprint output_path
-    # python2.7 builder.py wind ../data/wind-model/records/
+    # python2.7 builder blueprint input_path index_path output_path intermediate_path
+    # python2.7 builder.py wind ../data/training-images ../data/training-set-index.json ../data/wind-model/records/ ../data/tmp/intermediate-set
 
     # Preparing the training set
     blueprint_name = sys.argv[1]
-    output_path = sys.argv[2] # '../data/wind-model/records/' # INPUT PARAMETER
+    input_path = sys.argv[2]
+    index_path = sys.argv[3]
+    output_path = sys.argv[4] # '../data/wind-model/records/' # INPUT PARAMETER
+    intermediate_path = sys.argv[5]
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
-    intermediate_path, source_images_path, index_path = get_paths_for('training')
+    # intermediate_path, source_images_path, index_path = get_paths_for('training')
     blueprint = builder_blueprint.index[blueprint_name](intermediate_path)
     rmifexists(intermediate_path)
 
-    builder = MeteoTrainingSetBuilder(source_images_path, index_path)    
+    builder = MeteoTrainingSetBuilder(input_path, index_path)    
     builder.build_intermediate_set(blueprint)
     builder.build_tfrecord(intermediate_path, MeteoTrainingRecordWriter(output_path, 0.8))    
 
     # Preparing the prediction sets
-    intermediate_path, source_images_path, index_path = get_paths_for('prediction')
-    blueprint = builder_blueprint.index[blueprint_name](intermediate_path)
+    # intermediate_path, source_images_path, index_path = get_paths_for('prediction')
+    # blueprint = builder_blueprint.index[blueprint_name](intermediate_path)
 
-    for item in blueprint:        
-        builder = MeteoTrainingSetBuilder(source_images_path, index_path)
-        rmifexists(intermediate_path)
-        builder.build_intermediate_set([item])        
-        builder.build_tfrecord(intermediate_path, MeteoRecordWriter(
-            os.path.join(output_path, item['class_name'] + '.TFRecord')
-        ))
+    # for item in blueprint:        
+    #    builder = MeteoTrainingSetBuilder(source_images_path, index_path)
+    #    rmifexists(intermediate_path)
+    #    builder.build_intermediate_set([item])        
+    #    builder.build_tfrecord(intermediate_path, MeteoRecordWriter(
+    #        os.path.join(output_path, item['class_name'] + '.TFRecord')
+    #    ))
