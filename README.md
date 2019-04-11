@@ -18,8 +18,6 @@ pip install requirements.txt
 ```
 
 We need to build tensorflow from source to use graph_transform tool
-https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/graph_transforms/README.md
-https://github.com/tf-coreml/tf-coreml
 
 ## Downloader
 Downloader is a tool which downloads all available meteorograms form [Meteo.pl](http://meteo.pl) website. Downloader is constraint to several known locations but the list can be extended directly in the code.
@@ -51,7 +49,7 @@ python2.7 editor.py ../data/training-images ../data/training-set-index.json
 ```
 
 ## Builder
-Builder is a script which is responsible for building a set of TFRecord files based on meteorogram images, features index build by editor and a blueprint structure. Builder produces two files, training.TFRecord (80% of training examples) and prediction.TFRecord (20% of training examples).
+Builder is a script which is responsible for building a set of TFRecord files based on meteorogram images, features index build by editor and a blueprint structure. Builder produces two files, training.TFRecord (_80%_ of training examples) and prediction.TFRecord (_20%_ of training examples).
 
 __Anatomy of blueprint__
 
@@ -75,20 +73,32 @@ python2.7 builder.py wind ../data/training-images ../data/training-set-index.jso
 ```
 
 ## Trainer
+Trainer is a script which is responsible for training a machine learning model based on training examples from TFRecord files.
+The result of that training is a frozem model stored in protobuf format. All the training details are in the _feature.py_ and in the script itself. That may be decoupled in the future for easier experimentation.
 
 ```python
-python2.7 trainer.py input_path output_path class_name:label ....
-python2.7 trainer.py ../data/wind-model/records/ ../data/wind-model/saved-models wind-strong:0 wind-none:1
+# input_path - path to the directory where TFRecord files are located.
+# output_path - path to the directory where the model data will be stored.
+
+python2.7 trainer.py input_path output_path
+python2.7 trainer.py ../data/records/ ../data/saved-models
 ```
 
 ## CoreML transformation
+Coremltransform is a tool which converts machine learning model in protobuf format to the CoreML format consumable by iOS apps. Some convertion details are hardcoded in the script as well. This may be decoupled in the future for easier experimentation. Two critical pices of information for covertion purpose are name of imput and output layers. [Netron](https://github.com/lutzroeder/netron) can be used to retreive that information from the protobuf file.
 
 ```python
+# output_name - name of the class which will be imported to Xcode project.
+# model_dir - directory where the model files (in protobuf format) are located.
+
 python2.7 coremltransform output_name model_dir
-python2.7 coremltransform MeteoML ../data/wind-model/saved-models/1549906046_84
+python2.7 coremltransform MeteoML ../data/saved-models/1549906046
 ```
 
 ## References
 
-* Tensorflow
-* Netron
+* [Tensorflow]()
+* [Netron](https://github.com/lutzroeder/netron)
+* [TF CoreML](https://github.com/tf-coreml/tf-coreml)
+* [graph_transform](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/graph_transforms/README.md)
+
